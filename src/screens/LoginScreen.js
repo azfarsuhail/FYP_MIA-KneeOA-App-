@@ -14,6 +14,8 @@ import {
     ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { loginUser, setAuthToken } from '../services/api';
+import { saveUser } from '../services/database';
 
 const { width, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_HEIGHT = 220; // Fixed height taaki flicker na ho
@@ -59,7 +61,7 @@ const LoginScreen = ({ navigation }) => {
         });
     }, []);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!email.trim() || !password.trim()) {
             Alert.alert('Missing Fields', 'Please enter both email and password.');
             return;
@@ -71,14 +73,40 @@ const LoginScreen = ({ navigation }) => {
             Animated.timing(buttonScale, { toValue: 1, duration: 100, useNativeDriver: true }),
         ]).start();
 
-        setTimeout(() => {
-            setLoading(false);
-            if (email.toLowerCase() === 'test@test.com' && password === '123456') {
-                navigation.replace('Questionnaire');
-            } else {
-                Alert.alert('🔐 Demo Credentials', 'Email: test@test.com\nPassword: 123456');
+        try {
+            const response = await loginUser(email.trim().toLowerCase(), password);
+            const token = response?.access_token || response?.token || response?.data?.token || null;
+
+            if (token) {
+                setAuthToken(token);
             }
-        }, 1500);
+
+            await saveUser({
+                id: response?.user_id || response?.user?.user_id || response?.user?.id || null,
+                email: response?.email || email.trim().toLowerCase(),
+                fullName: response?.full_name || response?.user?.full_name || email.trim(),
+                role: response?.role || response?.user?.role || 'patient',
+                token,
+                profile: response?.user || response,
+            });
+
+            navigation.replace('Questionnaire');
+        } catch (error) {
+            if (email.toLowerCase() === 'test@test.com' && password === '123456') {
+                await saveUser({
+                    email: email.trim().toLowerCase(),
+                    fullName: 'Demo User',
+                    role: 'patient',
+                    profile: { demo: true },
+                });
+                navigation.replace('Questionnaire');
+                return;
+            }
+
+            Alert.alert('Login failed', error.message || 'Unable to sign in right now.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

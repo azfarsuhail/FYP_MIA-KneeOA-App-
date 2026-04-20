@@ -10,6 +10,7 @@ import {
     ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { setAuthToken } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -51,7 +52,9 @@ const STATS = [
     { label: 'Accuracy', value: '94%', icon: '🎯' },
 ];
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, route }) => {
+    const questionnaireId = route.params?.questionnaireId;
+    const clinicalProfile = route.params?.clinicalProfile;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(30)).current;
     const cardAnims = FEATURES.map(() => useRef(new Animated.Value(0)).current);
@@ -86,6 +89,7 @@ const HomeScreen = ({ navigation }) => {
     }, []);
 
     const handleLogout = () => {
+        setAuthToken(null);
         navigation.replace('Login');
     };
 
@@ -185,7 +189,7 @@ const HomeScreen = ({ navigation }) => {
                             <TouchableOpacity
                                 style={styles.card}
                                 activeOpacity={0.7}
-                                onPress={() => feature.route ? navigation.navigate(feature.route) : null}
+                                onPress={() => feature.route ? navigation.navigate(feature.route, { questionnaireId, clinicalProfile }) : null}
                             >
                                 <LinearGradient
                                     colors={feature.gradient}
@@ -263,7 +267,7 @@ const HomeScreen = ({ navigation }) => {
                     <Text style={styles.navIcon}>📷</Text>
                     <Text style={styles.navLabel}>Scan</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate('ImageCapture')}>
+                <TouchableOpacity style={styles.scanButton} onPress={() => navigation.navigate('ImageCapture', { questionnaireId, clinicalProfile })}>
                     <LinearGradient
                         colors={['#00D2FF', '#6C63FF']}
                         style={styles.scanButtonGradient}
