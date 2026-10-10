@@ -4,14 +4,17 @@ const trimTrailingSlash = (value) => String(value || '').trim().replace(/\/+$/, 
 
 const isHttpsUrl = (value) => /^https:\/\//i.test(String(value || '').trim());
 
+const environment = String(process.env.EXPO_PUBLIC_API_ENV || process.env.NODE_ENV || 'production').toLowerCase();
+
+// Plain HTTP only in development: the offline docker stack's NGINX has no TLS.
+const isAllowedUrl = (value) => isHttpsUrl(value) || (environment === 'development' && /^http:\/\//i.test(value));
+
 const readCandidate = (value) => {
     const normalized = trimTrailingSlash(value);
     if (!normalized) return null;
-    if (!isHttpsUrl(normalized)) return null;
+    if (!isAllowedUrl(normalized)) return null;
     return normalized;
 };
-
-const environment = String(process.env.EXPO_PUBLIC_API_ENV || process.env.NODE_ENV || 'production').toLowerCase();
 
 const resolveEnvironmentBaseUrl = () => {
     if (environment === 'development') {
